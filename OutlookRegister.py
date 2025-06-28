@@ -38,7 +38,7 @@ def OpenBrowser():
         p = sync_playwright().start()
         browser = p.chromium.launch(
             executable_path=browser_path,
-            headless=False,
+            headless=True,
             proxy={
                 "server": proxy,
                 "bypass": "localhost",
