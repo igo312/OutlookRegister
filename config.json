@@ -1,0 +1,14 @@
+{
+    "browser_path": "",
+    "proxy": "http://127.0.0.1:7897",
+    "max_captcha_retries": 3,
+    "enable_oauth2": false,
+    "client_id": "",
+    "redirect_url": "",
+    "Scopes": [
+        "offline_access",
+        "https://graph.microsoft.com/Mail.ReadWrite",
+        "https://graph.microsoft.com/Mail.Send",
+        "https://graph.microsoft.com/User.Read"
+    ]
+}
