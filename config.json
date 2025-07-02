@@ -1,7 +1,7 @@
 {
     "browser_path": "",
     "proxy": "http://127.0.0.1:7897",
-    "Bot_protection_wait": 22,
+    "Bot_protection_wait": 15,
     "max_captcha_retries": 3,
     "enable_oauth2": false,
     "client_id": "",
