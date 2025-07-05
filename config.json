@@ -3,6 +3,8 @@
     "proxy": "http://127.0.0.1:7897",
     "Bot_protection_wait": 15,
     "max_captcha_retries": 3,
+    "concurrent_flows": 10,
+    "max_tasks": 50,
     "enable_oauth2": false,
     "client_id": "",
     "redirect_url": "",
@@ -11,5 +13,6 @@
         "https://graph.microsoft.com/Mail.ReadWrite",
         "https://graph.microsoft.com/Mail.Send",
         "https://graph.microsoft.com/User.Read"
-    ]
+    ],
+    "info": "建议选用指纹浏览器，最好能过https://www.browserscan.net。如果enable_oauth2为false，则最后三个参数可选。其他情况下，必须填写所有参数。"
 }
