@@ -4,7 +4,7 @@
     "Bot_protection_wait": 15,
     "max_captcha_retries": 3,
     "concurrent_flows": 10,
-    "max_tasks": 5,
+    "max_tasks": 1,
     "enable_oauth2": true,
     "api_address": "http://local.adspower.net:50325",
     "client_id": "ef9ef115-0131-4190-9eaf-ebb68a237708",

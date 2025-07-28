@@ -119,9 +119,10 @@ def Outlook_register(page, email, password):
             page.locator(f'[role="option"]:text-is("{day}")').click()
 
         page.locator('[data-testid="primaryButton"]').click(timeout=5000)
-
+        page.wait_for_timeout(400)
+        time.sleep(0.1)
         page.locator('#lastNameInput').type(lastname,delay=120,timeout=10000)
-        page.wait_for_timeout(7000)
+        page.wait_for_timeout(700)
         page.locator('#firstNameInput').fill(firstname,timeout=10000)
 
         if time.time() - start_time < bot_protection_wait:
@@ -219,7 +220,7 @@ def Outlook_register(page, email, password):
 
     except:
         logger.info(f'[Error: Timeout] - 邮箱未初始化，无法正常收件。')
-        return True
+        return False
 
 def process_single_flow():
 
