@@ -1,18 +1,19 @@
 {
-    "browser_path": "",
-    "proxy": "http://127.0.0.1:7897",
+    "browser_path": "/bin/google-chrome",
+    "proxy": "http://127.0.0.1:10033",
     "Bot_protection_wait": 15,
     "max_captcha_retries": 3,
     "concurrent_flows": 10,
-    "max_tasks": 50,
-    "enable_oauth2": false,
-    "client_id": "",
-    "redirect_url": "",
+    "max_tasks": 1,
+    "enable_oauth2": true,
+    "api_address": "http://127.0.0.1:50325",
+    "client_id": "ef9ef115-0131-4190-9eaf-ebb68a237708",
+    "redirect_url": "http://localhost:7020/callback",
     "Scopes": [
         "offline_access",
         "https://graph.microsoft.com/Mail.ReadWrite",
         "https://graph.microsoft.com/Mail.Send",
         "https://graph.microsoft.com/User.Read"
     ],
-    "info": "建议选用指纹浏览器，最好能过https://www.browserscan.net。如果enable_oauth2为false，则最后三个参数可选。其他情况下，必须填写所有参数。"
+    "info": "建议选用指纹浏览器，最好能过https://www.browserscan.net。如果enable_oauth2为false，则最后三个参数可选。其他情况下，必须填写所有参数。api_address为AdsPower的API地址，默认为http://127.0.0.1:50325"
 }

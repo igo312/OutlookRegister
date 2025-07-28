@@ -8,6 +8,9 @@ from faker import Faker
 from get_token import get_access_token
 from playwright.sync_api import sync_playwright
 from concurrent.futures import ThreadPoolExecutor
+from loguru import logger
+import log_config  # 导入日志配置
+from ads_util import create_ads_profile, delete_ads_profile, start_ads_profile, stop_ads_profile
 
 def generate_strong_password(length=16):
 
@@ -36,8 +39,12 @@ def random_email(length):
 
     return first_char + ''.join(other_chars)
 
-def OpenBrowser():
-    try:
+
+def OpenBrowser(ws_url=None):
+    """
+    使用 AdsPower 的 WebSocket URL 连接浏览器
+    """
+    if ws_url is None:
         p = sync_playwright().start()
         browser = p.chromium.launch(
             executable_path=browser_path,
@@ -48,9 +55,13 @@ def OpenBrowser():
             },
         ) 
         return browser,p
-
+    try:
+        p = sync_playwright().start()
+        browser = p.chromium.connect_over_cdp(ws_url)
+        return browser, p
     except Exception as e:
-        print(e)
+        logger.info(f"[Error: AdsPower Browser Connection] - {e}")
+        return None, None
 
 def Outlook_register(page, email, password):
 
@@ -59,25 +70,30 @@ def Outlook_register(page, email, password):
     lastname = fake.last_name()
     firstname = fake.first_name()
     year = str(random.randint(1960, 2005))
-    month = str(random.randint(1, 12))
+    month_num = random.randint(1, 12)
+    month_list = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+    month = month_list[month_num - 1]
     day = str(random.randint(1, 28))
 
     try:
 
         page.goto("https://outlook.live.com/mail/0/?prompt=create_account", timeout=20000, wait_until="domcontentloaded")
-        page.get_by_text('同意并继续').wait_for(timeout=30000)
+        # page.get_by_text('同意并继续').wait_for(timeout=30000)
         start_time = time.time()
-        page.wait_for_timeout(2000)
-        page.get_by_text('同意并继续').click(timeout=30000)
+        # page.wait_for_timeout(2000)
+        # page.get_by_text('同意并继续').click(timeout=30000)
 
     except: 
 
-        print("[Error: IP] - IP质量不佳，无法进入注册界面。 ")
+        logger.info("[Error: IP] - IP质量不佳，无法进入注册界面。 ")
         return False
     
     try:
 
-        page.locator('[aria-label="新建电子邮件"]').type(email,delay=80,timeout=10000)
+        page.locator('[aria-label="New email"]').type(email,delay=80,timeout=10000)
         page.locator('[data-testid="primaryButton"]').click(timeout=5000)
         page.wait_for_timeout(400)
         page.locator('[type="password"]').type(password,delay=60,timeout=10000)
@@ -98,11 +114,11 @@ def Outlook_register(page, email, password):
 
             page.locator('[name="BirthMonth"]').click()
             page.wait_for_timeout(400)
-            page.locator(f'[role="option"]:text-is("{month}月")').click()
+            page.locator(f'[role="option"]:text-is("{month}")').click()
             page.wait_for_timeout(1200)
             page.locator('[name="BirthDay"]').click()
             page.wait_for_timeout(400)
-            page.locator(f'[role="option"]:text-is("{day}日")').click()
+            page.locator(f'[role="option"]:text-is("{day}")').click()
 
         page.locator('[data-testid="primaryButton"]').click(timeout=5000)
 
@@ -117,13 +133,12 @@ def Outlook_register(page, email, password):
         page.locator('span > [href="https://go.microsoft.com/fwlink/?LinkID=521839"]').wait_for(state='detached',timeout=22000)
 
         page.wait_for_timeout(400)
-
         if page.get_by_text('一些异常活动').count() > 0:
-            print("[Error: IP or broswer] - 当前IP注册频率过快。检查IP与是否为指纹浏览器并关闭了无头模式。")
+            logger.info("[Error: IP or broswer] - 当前IP注册频率过快。检查IP与是否为指纹浏览器并关闭了无头模式。")
             return False
 
         if page.locator('iframe#enforcementFrame').count() > 0:
-            print("[Error: FunCaptcha] - 验证码类型错误，非按压验证码。 ")
+            logger.info("[Error: FunCaptcha] - 验证码类型错误，非按压验证码。 ")
             return False
 
         page.wait_for_event("request", lambda req: req.url.startswith("blob:https://iframe.hsprotect.net/"), timeout=22000)
@@ -146,7 +161,7 @@ def Outlook_register(page, email, password):
             except:
                 try:
                     page.get_by_text('一些异常活动').wait_for(timeout=1200)
-                    print("[Error: Rate limit] - 正常通过验证码，但当前IP注册频率过快。")
+                    logger.info("[Error: Rate limit] - 正常通过验证码，但当前IP注册频率过快。")
                     return False
 
                 except:
@@ -159,13 +174,13 @@ def Outlook_register(page, email, password):
 
     except:
 
-        print(f"[Error: IP] - 加载超时或因触发机器人检测导致按压次数达到最大仍未通过。")
+        logger.info(f"[Error: IP] - 加载超时或因触发机器人检测导致按压次数达到最大仍未通过。")
         return False  
     
     filename = 'Results\\logged_email.txt' if enable_oauth2 else 'Results\\unlogged_email.txt'
     with open(filename, 'a', encoding='utf-8') as f:
         f.write(f"{email}@outlook.com: {password}\n")
-    print(f'[Success: Email Registration] - {email}@outlook.com: {password}')
+    logger.info(f'[Success: Email Registration] - {email}@outlook.com: {password}')
 
     if not enable_oauth2:
         return True
@@ -177,7 +192,7 @@ def Outlook_register(page, email, password):
 
     except:
 
-        print(f"[Error: Timeout] - 无法找到按钮。")
+        logger.info(f"[Error: Timeout] - 无法找到按钮。")
         return False   
 
     try:
@@ -205,14 +220,27 @@ def Outlook_register(page, email, password):
         return True
 
     except:
-        print(f'[Error: Timeout] - 邮箱未初始化，无法正常收件。')
+        logger.info(f'[Error: Timeout] - 邮箱未初始化，无法正常收件。')
         return False
 
 def process_single_flow():
 
     try:
-        browser = None
-        browser, p = OpenBrowser()
+        # 创建并启动 AdsPower 浏览器配置
+        profile_id = create_ads_profile(api_address)
+        res = start_ads_profile(api_address, profile_id)
+        if res['code'] == 0:
+            ws_url = res['data']['ws']['puppeteer']
+        else:
+            logger.info(f'[Error: Start Ads Profile] - {res["message"]}')
+            return False
+        
+        # 连接到 AdsPower 浏览器
+        browser, p = OpenBrowser(ws_url)
+        if browser is None:
+            logger.info(f'[Error: Browser Connection] - 无法连接到 AdsPower 浏览器')
+            return False
+        
         page = browser.new_page()
 
         email =  random_email(random.randint(12, 14))
@@ -230,7 +258,7 @@ def process_single_flow():
             refresh_token, access_token, expire_at =  token_result
             with open(r'Results\outlook_token.txt', 'a') as f2:
                 f2.write(email + "@outlook.com---" + password + "---" + refresh_token + "---" + access_token  + "---" + str(expire_at) + "\n") 
-            print(f'[Success: TokenAuth] - {email}@outlook.com')
+            logger.info(f'[Success: TokenAuth] - {email}@outlook.com')
             return True
         else:
             return False
@@ -239,8 +267,17 @@ def process_single_flow():
         return False
     
     finally:
-        browser.close()
-        p.stop()
+        try:
+            if browser:
+                browser.close()
+            if p:
+                p.stop()
+            # 停止并删除 AdsPower 配置
+            if 'profile_id' in locals():
+                stop_ads_profile(api_address, profile_id)
+                delete_ads_profile(api_address, profile_id)
+        except Exception as e:
+            logger.info(f'[Error: Cleanup] - {e}')
 
 def main(concurrent_flows=10, max_tasks=1000):
 
@@ -264,7 +301,7 @@ def main(concurrent_flows=10, max_tasks=1000):
 
                 except Exception as e:
                     failed_tasks += 1
-                    print(e)
+                    logger.info(e)
 
                 running_futures.remove(future)
             
@@ -276,7 +313,7 @@ def main(concurrent_flows=10, max_tasks=1000):
 
             time.sleep(0.5)
 
-        print(f"[Info: Result] - 共 {max_tasks} 个，成功 {succeeded_tasks}，失败 {failed_tasks}")
+        logger.info(f"[Info: Result] - 共 {max_tasks} 个，成功 {succeeded_tasks}，失败 {failed_tasks}")
 
 if __name__ == '__main__':
 
@@ -293,6 +330,7 @@ if __name__ == '__main__':
     enable_oauth2 = data['enable_oauth2']
     concurrent_flows = data["concurrent_flows"]
     max_tasks = data["max_tasks"]
+    api_address = data["api_address"]
 
 
     main(concurrent_flows, max_tasks)

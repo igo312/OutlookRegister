@@ -2,22 +2,52 @@ import json
 import base64
 import random
 import string
-import winreg
 import hashlib
 import secrets
 import requests
+import os
+import subprocess
 from datetime import datetime
 from urllib.parse import quote, parse_qs
+from loguru import logger
+import log_config  # 导入日志配置
 
 def get_proxy():
+    """获取系统代理设置 - Ubuntu适配版本"""
     try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Internet Settings") as key:
-            proxy_enable, _ = winreg.QueryValueEx(key, "ProxyEnable")
-            proxy_server, _ = winreg.QueryValueEx(key, "ProxyServer")
-            if proxy_enable and proxy_server:
-                return {"http": f"http://{proxy_server}", "https": f"http://{proxy_server}"}
-    except WindowsError:
+        # 尝试从环境变量获取代理设置
+        http_proxy = os.environ.get('http_proxy') or os.environ.get('HTTP_PROXY')
+        https_proxy = os.environ.get('https_proxy') or os.environ.get('HTTPS_PROXY')
+        
+        if http_proxy or https_proxy:
+            return {
+                "http": http_proxy,
+                "https": https_proxy
+            }
+        
+        # 尝试从Ubuntu系统设置获取代理（通过gsettings）
+        try:
+            result = subprocess.run(['gsettings', 'get', 'org.gnome.system.proxy', 'mode'], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and "'manual'" in result.stdout:
+                # 获取代理服务器设置
+                http_host = subprocess.run(['gsettings', 'get', 'org.gnome.system.proxy.http', 'host'], 
+                                         capture_output=True, text=True, timeout=5)
+                http_port = subprocess.run(['gsettings', 'get', 'org.gnome.system.proxy.http', 'port'], 
+                                         capture_output=True, text=True, timeout=5)
+                
+                if http_host.returncode == 0 and http_port.returncode == 0:
+                    host = http_host.stdout.strip().strip("'")
+                    port = http_port.stdout.strip()
+                    if host and port != "0":
+                        proxy_url = f"http://{host}:{port}"
+                        return {"http": proxy_url, "https": proxy_url}
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+            pass
+            
+    except Exception:
         pass
+    
     return {"http": None, "https": None}
 
 def generate_code_verifier(length=128):
@@ -107,7 +137,7 @@ def get_access_token(page, email):
 
         if 'code=' not in callback_url:
 
-            print("Authorization failed: No code in callback URL")
+            logger.info("Authorization failed: No code in callback URL")
             return False, False, False
         auth_code = parse_qs(callback_url.split('?')[1])['code'][0]
 
