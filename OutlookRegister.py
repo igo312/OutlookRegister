@@ -9,7 +9,6 @@ from get_token import get_access_token
 from playwright.sync_api import sync_playwright
 from concurrent.futures import ThreadPoolExecutor
 from loguru import logger
-import log_config  # 导入日志配置
 from ads_util import create_ads_profile, delete_ads_profile, start_ads_profile, stop_ads_profile
 
 def generate_strong_password(length=16):
@@ -90,7 +89,6 @@ def Outlook_register(page, email, password):
 
         logger.info("[Error: IP] - IP质量不佳，无法进入注册界面。 ")
         return False
-    
     try:
 
         page.locator('[aria-label="New email"]').type(email,delay=80,timeout=10000)
@@ -112,7 +110,7 @@ def Outlook_register(page, email, password):
         
         except:
 
-            page.locator('[name="BirthMonth"]').click()
+            page.locator('[name="BirthMonth"]').click(force=True,timeout=200)
             page.wait_for_timeout(400)
             page.locator(f'[role="option"]:text-is("{month}")').click()
             page.wait_for_timeout(1200)
@@ -123,7 +121,7 @@ def Outlook_register(page, email, password):
         page.locator('[data-testid="primaryButton"]').click(timeout=5000)
 
         page.locator('#lastNameInput').type(lastname,delay=120,timeout=10000)
-        page.wait_for_timeout(700)
+        page.wait_for_timeout(7000)
         page.locator('#firstNameInput').fill(firstname,timeout=10000)
 
         if time.time() - start_time < bot_protection_wait:
@@ -221,7 +219,7 @@ def Outlook_register(page, email, password):
 
     except:
         logger.info(f'[Error: Timeout] - 邮箱未初始化，无法正常收件。')
-        return False
+        return True
 
 def process_single_flow():
 

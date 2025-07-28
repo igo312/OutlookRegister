@@ -10,7 +10,6 @@ import subprocess
 from datetime import datetime
 from urllib.parse import quote, parse_qs
 from loguru import logger
-import log_config  # 导入日志配置
 
 def get_proxy():
     """获取系统代理设置 - Ubuntu适配版本"""

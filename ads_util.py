@@ -6,12 +6,12 @@ def create_ads_profile(api_address):
     fingerprint_config = {
         'random_ua':{
             'ua_browser': ['chrome'],
-            'ua_system': ['windows 10', 'Windows 11'],
+            'ua_system_version': ['windows 10', 'Windows 11'],
         }
     }
     profile = {
-        'group_id': 10,
-        'proxy_id': 'random',
+        'group_id': '0',
+        'proxyid': 'random',
         'fingerprint_config': fingerprint_config
     }
     api = '/api/v2/browser-profile/create'
